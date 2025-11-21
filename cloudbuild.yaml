@@ -1,9 +1,26 @@
+# cloudbuild.yaml
 steps:
-  - name: "python:3.10"
-    entrypoint: python
-    args:
-      - annotate.py
-      - $_GCS_KEY
+# This step is the equivalent of the 'install' phase
+- name: 'gcr.io/cloud-builders/pip'
+  args: ['install', '-r', 'requirements.txt']
 
-substitutions:
-  _GCS_KEY: ""
+# This step is the equivalent of the 'build' phase
+- name: 'python:3.11' # Using a specific Python 3.11 image
+  entrypoint: 'python'
+  args: ['run.py']
+  # Cloud Build will automatically get the '_S3_KEY' variable we send 
+  # from the Cloud Function and set it as an environment variable.
+  # Your run.py script can access it with os.environ.get('S3_KEY').
+
+# Optional: Equivalent of 'post_build'
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'ls'
+  args: ['.']
+
+# This is the equivalent of the 'artifacts' section
+artifacts:
+  objects:
+    location: 'gs://${_BUCKET_NAME}/build-artifacts/$BUILD_ID/'
+    paths:
+      - 'frame_data/**'
+      - 'result.json'
